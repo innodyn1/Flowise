@@ -172,7 +172,7 @@ const OrganizationSetupPage = () => {
             if (isEnterpriseLicensed) {
                 finalErrMessage = `Error in registering organization. Please contact your administrator. (${errMessage})`
             } else {
-                finalErrMessage = `Error in registering account.`
+                finalErrMessage = `Error in registering account: ${errMessage}`
             }
             setAuthError(finalErrMessage)
             setLoading(false)
@@ -287,7 +287,7 @@ const OrganizationSetupPage = () => {
                                 <>
                                     <Box>
                                         <div style={{ display: 'flex', flexDirection: 'row' }}>
-                                            <Typography>
+                                            <Typography sx={{ mb: 1 }}>
                                                 Existing Username<span style={{ color: 'red' }}>&nbsp;*</span>
                                             </Typography>
                                             <div style={{ flexGrow: 1 }}></div>
@@ -304,7 +304,7 @@ const OrganizationSetupPage = () => {
                                     </Box>
                                     <Box>
                                         <div style={{ display: 'flex', flexDirection: 'row' }}>
-                                            <Typography>
+                                            <Typography sx={{ mb: 1 }}>
                                                 Existing Password<span style={{ color: 'red' }}>&nbsp;*</span>
                                             </Typography>
                                             <div style={{ flexGrow: 1 }}></div>
@@ -396,7 +396,7 @@ const OrganizationSetupPage = () => {
                                 <Typography variant='caption'>
                                     <i>
                                         Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase
-                                        letter, one digit, and one special character (@$!%*?&-).
+                                        letter, one digit, and one special character.
                                     </i>
                                 </Typography>
                             </Box>

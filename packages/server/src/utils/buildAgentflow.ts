@@ -335,6 +335,30 @@ export const resolveVariables = async (
                 }
             }
 
+            // Check if the variable is an output reference like `nodeId.output.path`
+            const outputMatch = variableFullPath.match(/^(.*?)\.output\.(.+)$/)
+            if (outputMatch && agentFlowExecutedData) {
+                // Extract nodeId and outputPath from the match
+                const [, nodeIdPart, outputPath] = outputMatch
+                // Clean nodeId (handle escaped underscores)
+                const cleanNodeId = nodeIdPart.replace('\\', '')
+                // Find the last (most recent) matching node data instead of the first one
+                const nodeData = [...agentFlowExecutedData].reverse().find((d) => d.nodeId === cleanNodeId)
+                if (nodeData?.data?.output && outputPath.trim()) {
+                    const variableValue = get(nodeData.data.output, outputPath)
+                    if (variableValue !== undefined) {
+                        // Replace the reference with actual value
+                        const formattedValue =
+                            Array.isArray(variableValue) || (typeof variableValue === 'object' && variableValue !== null)
+                                ? JSON.stringify(variableValue)
+                                : String(variableValue)
+                        resolvedValue = resolvedValue.replace(match, formattedValue)
+                        // Skip fallback logic
+                        continue
+                    }
+                }
+            }
+
             // Find node data in executed data
             // sometimes turndown value returns a backslash like `llmAgentflow\_1`, remove the backslash
             const cleanNodeId = variableFullPath.replace('\\', '')
@@ -344,7 +368,8 @@ export const resolveVariables = async (
                 : undefined
             if (nodeData && nodeData.data) {
                 // Replace the reference with actual value
-                const actualValue = (nodeData.data['output'] as ICommonObject)?.content
+                const nodeOutput = nodeData.data['output'] as ICommonObject
+                const actualValue = nodeOutput?.content ?? nodeOutput?.http?.data
                 // For arrays and objects, stringify them to prevent toString() conversion issues
                 const formattedValue =
                     Array.isArray(actualValue) || (typeof actualValue === 'object' && actualValue !== null)
@@ -1322,6 +1347,24 @@ export const executeAgentFlow = async ({
         if (previousExecutions.length) {
             previousExecution = previousExecutions[0]
         }
+    }
+
+    // If the state is persistent, get the state from the previous execution
+    const startPersistState = nodes.find((node) => node.data.name === 'startAgentflow')?.data.inputs?.startPersistState
+    if (startPersistState === true && previousExecution) {
+        const previousExecutionData = (JSON.parse(previousExecution.executionData) as IAgentflowExecutedData[]) ?? []
+
+        let previousState = {}
+        if (Array.isArray(previousExecutionData) && previousExecutionData.length) {
+            for (const execData of previousExecutionData.reverse()) {
+                if (execData.data.state) {
+                    previousState = execData.data.state
+                    break
+                }
+            }
+        }
+
+        agentflowRuntime.state = previousState
     }
 
     // If the start input type is form input, get the form values from the previous execution (form values are persisted in the same session)
